@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cadastro</title>
+    <style>
+        /* FRONT-END EXCELENTE PRESERVADO */
+        body { font-family: sans-serif; background: #f0f2f5; padding: 15px; margin: 0; }
+        .caixa { background: white; padding: 20px; border-radius: 15px; max-width: 500px; margin: auto; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        label { display: block; margin-top: 10px; font-weight: bold; font-size: 12px; color: #666; }
+        input, textarea { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 16px; margin-top: 5px; }
+        .duas-col { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        #preview { width: 100px; height: 100px; border-radius: 50%; object-fit: cover; display: block; margin: 10px auto; border: 3px solid #007bff; background: #eee; }
+        .btn { border: none; padding: 15px; width: 100%; border-radius: 8px; font-weight: bold; margin-top: 10px; cursor: pointer; font-size: 15px; text-align: center; text-decoration: none; display: block; }
+        .btn-salvar { background: #007bff; color: white; }
+        .btn-whats { background: #25d366; color: white; display: none; }
+        .btn-tele { background: #0088cc; color: white; display: none; }
+        .btn-del { background: #dc3545; color: white; display: none; }
+        .btn-voltar { text-align: center; margin-top: 15px; color: #666; text-decoration: none; display: block; }
+    </style>
+</head>
+<body>
+
+<div class="caixa">
+    <h3 id="txtTitulo" style="text-align:center; color:#007bff; margin-top:0">FICHA DE DADOS</h3>
+    <img id="preview" src="https://via.placeholder.com/100">
+    
+    <form id="formFinal">
+        <label>Foto de Identificação</label>
+        <input type="file" id="foto" accept="image/*">
+        
+        <label>Nome Completo</label>
+        <input type="text" id="nome" required>
+        
+        <div class="duas-col">
+            <div><label>CPF</label><input type="tel" id="cpf" maxlength="14" required></div>
+            <div><label>Nascimento</label><input type="tel" id="data" maxlength="10" required></div>
+        </div>
+        
+        <div class="duas-col">
+            <div><label>Cidade</label><input type="text" id="cidade"></div>
+            <div><label>UF</label><input type="text" id="uf" maxlength="2"></div>
+        </div>
+        
+        <label>Observações</label>
+        <textarea id="obs" rows="3"></textarea>
+
+        <button type="submit" id="btnAcao" class="btn btn-salvar">💾 SALVAR ALTERAÇÕES</button>
+        
+        <button type="button" id="btnWhats" class="btn btn-whats" onclick="abrirApp('whatsapp')">🟢 WHATSAPP DIRETO</button>
+        <button type="button" id="btnTele" class="btn btn-tele" onclick="abrirApp('telegram')">🔵 TELEGRAM DIRETO</button>
+        
+        <button type="button" id="btnDel" class="btn btn-del" onclick="excluirRegistro()">🗑️ EXCLUIR REGISTRO</button>
+        
+        <a href="index.html" class="btn-voltar">VOLTAR PARA LISTA</a>
+    </form>
+</div>
+
+<script>
+    const urlParams = new URLSearchParams(window.location.search);
+    const idEdicao = urlParams.get('edit');
+    let fotoBase64 = "";
+
+    // MÁSCARAS
+    document.getElementById('cpf').oninput = e => {
+        let v = e.target.value.replace(/\D/g, '');
+        v = v.replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})(\d{1,2})$/, '$1-$2');
+        e.target.value = v;
+    };
+    document.getElementById('data').oninput = e => {
+        let v = e.target.value.replace(/\D/g, '');
+        v = v.replace(/(\d{2})(\d)/, '$1/$2').replace(/(\d{2})(\d)/, '$1/$2');
+        e.target.value = v;
+    };
+
+    // CARREGAR DADOS AO ABRIR NO CHROME
+    window.onload = () => {
+        if (idEdicao !== null) {
+            const lista = JSON.parse(localStorage.getItem('banco_final') || '[]');
+            const d = lista[idEdicao];
+            if (d) {
+                document.getElementById('btnWhats').style.display = "block";
+                document.getElementById('btnTele').style.display = "block";
+                document.getElementById('btnDel').style.display = "block";
+                document.getElementById('txtTitulo').innerText = "EDITAR CADASTRO";
+                document.getElementById('btnAcao').innerText = "💾 ATUALIZAR DADOS";
+                
+                document.getElementById('nome').value = d.nome || '';
+                document.getElementById('cpf').value = d.cpf || '';
+                document.getElementById('data').value = d.data || '';
+                document.getElementById('cidade').value = d.cidade || '';
+                document.getElementById('uf').value = d.uf || '';
+                document.getElementById('obs').value = d.obs || '';
+                if(d.foto) { document.getElementById('preview').src = d.foto; fotoBase64 = d.foto; }
+            }
+        }
+    };
+
+    // FUNÇÃO QUE O CHROME USA PARA CHAMAR OS APPS DIRETAMENTE
+    function abrirApp(plataforma) {
+        const nome = document.getElementById('nome').value;
+        const cpf = document.getElementById('cpf').value;
+        const data = document.getElementById('data').value;
+        const local = document.getElementById('cidade').value + " - " + document.getElementById('uf').value;
+        const obs = document.getElementById('obs').value;
+
+        // Texto formatado com negritos
+        const mensagem = `*FICHA DE CADASTRO*%0A%0A` +
+                         `*Nome:* ${nome}%0A` +
+                         `*CPF:* ${cpf}%0A` +
+                         `*Data:* ${data}%0A` +
+                         `*Local:* ${local}%0A` +
+                         `*Obs:* ${obs}`;
+
+        if (plataforma === 'whatsapp') {
+            window.location.href = `whatsapp://send?text=${mensagem}`;
+        } else {
+            // No Telegram, o protocolo direto é tg://msg
+            window.location.href = `tg://msg?text=${mensagem}`;
+        }
+    }
+
+    // PROCESSAR FOTO
+    document.getElementById('foto').onchange = e => {
+        const reader = new FileReader();
+        reader.onload = ev => {
+            const img = new Image();
+            img.src = ev.target.result;
+            img.onload = () => {
+                const cv = document.createElement('canvas');
+                cv.width = 250; cv.height = 250;
+                cv.getContext('2d').drawImage(img, 0, 0, 250, 250);
+                fotoBase64 = cv.toDataURL('image/jpeg', 0.7);
+                document.getElementById('preview').src = fotoBase64;
+            };
+        };
+        reader.readAsDataURL(e.target.files[0]);
+    };
+
+    // GUARDAR DADOS
+    document.getElementById('formFinal').onsubmit = e => {
+        e.preventDefault();
+        let lista = JSON.parse(localStorage.getItem('banco_final') || '[]');
+        const registro = {
+            nome: document.getElementById('nome').value,
+            cpf: document.getElementById('cpf').value,
+            data: document.getElementById('data').value,
+            cidade: document.getElementById('cidade').value,
+            uf: document.getElementById('uf').value,
+            obs: document.getElementById('obs').value,
+            foto: fotoBase64
+        };
+        if (idEdicao !== null) lista[idEdicao] = registro;
+        else lista.push(registro);
+        localStorage.setItem('banco_final', JSON.stringify(lista));
+        alert("Dados guardados!");
+        window.location.href = "index.html";
+    };
+
+    function excluirRegistro() {
+        if(confirm("Deseja apagar permanentemente?")) {
+            let lista = JSON.parse(localStorage.getItem('banco_final'));
+            lista.splice(idEdicao, 1);
+            localStorage.setItem('banco_final', JSON.stringify(lista));
+            window.location.href = "index.html";
+        }
+    }
+</script>
+</body>
+</html>
